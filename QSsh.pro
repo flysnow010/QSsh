@@ -5,6 +5,12 @@ QT += gui network widgets
 DEFINES += QTCSSH_LIBRARY
 DEFINES += UTILS_LIBRARY
 
+CONFIG(debug, debug | release){
+    TARGET = QSshd
+}
+else {
+    TARGET = QSsh
+}
 INCLUDEPATH += ./
 CONFIG += console c++17
 DEFINES += QTCREATOR_UTILS_STATIC_LIB
