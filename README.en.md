@@ -1,36 +1,106 @@
 # QSsh
 
 #### Description
-从Qt Creator中提取的ssh库。
-
-#### Software Architecture
-Software architecture description
-
-#### Installation
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
+The QSsh library extracted from Qt Creator is an encapsulation of SSH and SCP command line programs.
 
 #### Instructions
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+The following is the example code for using the QSsh library.
 
-#### Contribution
+1.  Widget.h
+```
+#ifndef WIDGET_H
+#define WIDGET_H
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+#include <QWidget>
+#include <sshremoteprocessrunner.h>
 
+QT_BEGIN_NAMESPACE
+namespace Ui { class Widget; }
+QT_END_NAMESPACE
 
-#### Gitee Feature
+class Widget : public QWidget
+{
+    Q_OBJECT
+public:
+    Widget(QWidget *parent = nullptr);
+    ~Widget();
+private slots:
+    void connectionError();
+    void processStarted();
+    void readyReadStandardOutput();
+    void readyReadStandardError();
+    void processClosed(const QString &error);
+    void on_pushButton_clicked();
+private:
+    Ui::Widget *ui;
+    QSsh::SshRemoteProcessRunner * shell;
+};
+#endif // WIDGET_H
+```
+2.  Widget.cpp
+```
+#include "widget.h"
+#include "ui_widget.h"
+#include <sshconnectionmanager.h>
+#include <sshsettings.h>
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+Widget::Widget(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::Widget)
+    , shell(new QSsh::SshRemoteProcessRunner(this))
+{
+    ui->setupUi(this);
+    QSsh::SshSettings::setAskpassFilePath(
+            Utils::FilePath::fromString("AskPass.exe"));
+    connect(shell, SIGNAL(connectionError()), this, SLOT(connectionError()));
+    connect(shell, SIGNAL(processStarted()), this, SLOT(processStarted()));
+    connect(shell, SIGNAL(readyReadStandardOutput()), this, SLOT(readyReadStandardOutput()));
+    connect(shell, SIGNAL(readyReadStandardError()), this, SLOT(readyReadStandardError()));
+    connect(shell, SIGNAL(processClosed(QString)), this, SLOT(processClosed(QString)));
+}
+
+Widget::~Widget()
+{
+    delete ui;
+}
+
+void Widget::connectionError()
+{
+    qDebug() << "connectionError: " << shell->lastConnectionErrorString();
+}
+
+void Widget::processStarted()
+{
+    qDebug() << "processStarted";
+}
+
+void Widget::readyReadStandardOutput()
+{
+    QString text = ui->textEdit->toPlainText() + 
+        QString::fromUtf8(shell->readAllStandardOutput());
+    ui->textEdit->setText(text);
+}
+
+void Widget::readyReadStandardError()
+{
+    qDebug() << "readyReadStandardError:" 
+        <<  QString::fromUtf8(shell->readAllStandardError());
+}
+
+void Widget::processClosed(const QString &error)
+{
+    qDebug() << "processClosed: " << error;
+}
+
+void Widget::on_pushButton_clicked()
+{
+    QSsh::SshConnectionParameters paramters;
+
+    paramters.setHost("13.13.13.10");
+    paramters.setUserName("james");
+    paramters.setPort(22);
+
+    shell->runInTerminal(QString(), paramters);
+}
+```

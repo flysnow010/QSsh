@@ -1,37 +1,104 @@
 # QSsh
 
 #### 介绍
-从Qt Creator中提取的ssh库。
-
-#### 软件架构
-软件架构说明
-
-
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
+从Qt Creator中提取的QSsh库,该库是对SSH和SCP命令行程序的封装。
 
 #### 使用说明
+下面是使用QSsh库的实例代码。
+1.  Widget.h
+```
+#ifndef WIDGET_H
+#define WIDGET_H
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+#include <QWidget>
+#include <sshremoteprocessrunner.h>
 
-#### 参与贡献
+QT_BEGIN_NAMESPACE
+namespace Ui { class Widget; }
+QT_END_NAMESPACE
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+class Widget : public QWidget
+{
+    Q_OBJECT
+public:
+    Widget(QWidget *parent = nullptr);
+    ~Widget();
+private slots:
+    void connectionError();
+    void processStarted();
+    void readyReadStandardOutput();
+    void readyReadStandardError();
+    void processClosed(const QString &error);
+    void on_pushButton_clicked();
+private:
+    Ui::Widget *ui;
+    QSsh::SshRemoteProcessRunner * shell;
+};
+#endif // WIDGET_H
+```
+2.  Widget.cpp
+```
+#include "widget.h"
+#include "ui_widget.h"
+#include <sshconnectionmanager.h>
+#include <sshsettings.h>
 
+Widget::Widget(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::Widget)
+    , shell(new QSsh::SshRemoteProcessRunner(this))
+{
+    ui->setupUi(this);
+    QSsh::SshSettings::setAskpassFilePath(
+            Utils::FilePath::fromString("AskPass.exe"));
+    connect(shell, SIGNAL(connectionError()), this, SLOT(connectionError()));
+    connect(shell, SIGNAL(processStarted()), this, SLOT(processStarted()));
+    connect(shell, SIGNAL(readyReadStandardOutput()), this, SLOT(readyReadStandardOutput()));
+    connect(shell, SIGNAL(readyReadStandardError()), this, SLOT(readyReadStandardError()));
+    connect(shell, SIGNAL(processClosed(QString)), this, SLOT(processClosed(QString)));
+}
 
-#### 特技
+Widget::~Widget()
+{
+    delete ui;
+}
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+void Widget::connectionError()
+{
+    qDebug() << "connectionError: " << shell->lastConnectionErrorString();
+}
+
+void Widget::processStarted()
+{
+    qDebug() << "processStarted";
+}
+
+void Widget::readyReadStandardOutput()
+{
+    QString text = ui->textEdit->toPlainText() + 
+        QString::fromUtf8(shell->readAllStandardOutput());
+    ui->textEdit->setText(text);
+}
+
+void Widget::readyReadStandardError()
+{
+    qDebug() << "readyReadStandardError:" 
+        <<  QString::fromUtf8(shell->readAllStandardError());
+}
+
+void Widget::processClosed(const QString &error)
+{
+    qDebug() << "processClosed: " << error;
+}
+
+void Widget::on_pushButton_clicked()
+{
+    QSsh::SshConnectionParameters paramters;
+
+    paramters.setHost("13.13.13.10");
+    paramters.setUserName("james");
+    paramters.setPort(22);
+
+    shell->runInTerminal(QString(), paramters);
+}
+```
