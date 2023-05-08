@@ -144,6 +144,8 @@ struct SshConnection::SshConnectionPrivate
         }
         if (useTimeout)
             args << "-o" << ("ConnectTimeout=" + QString::number(connParams.timeout));
+        args << "-o" << "HostKeyAlgorithms=+ssh-rsa";
+        args << "-o" << "PubkeyAcceptedKeyTypes=+ssh-rsa";
         return args;
     }
 
